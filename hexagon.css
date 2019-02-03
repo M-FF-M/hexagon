@@ -1,0 +1,65 @@
+
+.hex-menu {
+  background-color: rgba(255, 255, 255, 0.75);
+}
+
+.hex-menu-inner {
+  margin: 2em;
+}
+
+.hex-menu-inner h1 {
+  text-align: center;
+  color: rgba(36, 63, 65, 1);
+}
+
+.hex-menu-inner p {
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hex-menu-map-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+input[type=button] {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hex-menu-map {
+  display: inline-block;
+  text-align: center;
+  margin-left: 1em;
+  margin-right: 1em;
+}
+
+input[type=button], .hex-menu-map {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  border-width: 0em;
+  font-size: 1em;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+  padding-left: 2em;
+  padding-right: 2em;
+  border-radius: 0.5em;
+  /* background-color: rgba(36, 63, 65, 1); */
+  background: linear-gradient(-45deg, rgba(36, 63, 65, 1) 33.3%, rgba(72, 180, 145, 1) 33.4%, rgba(72, 180, 145, 1) 66.5%, rgba(193, 74, 64, 1) 66.6%);
+  background-size: 300% 300%;
+  background-position: 100% 100%;
+  transition: background-position-x 1s, background-position-y 1s;
+  color: rgba(255, 255, 255, 1);
+  font-family: inherit;
+  outline: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+input[type=button]:hover, .hex-menu-map:hover {
+  background-position: 0% 0%;
+}

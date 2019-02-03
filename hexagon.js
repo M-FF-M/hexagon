@@ -1,15 +1,23 @@
 
 function hexMain() {
-  // let can = document.createElement('canvas');
-  // can.width = window.innerWidth;
-  // can.height = window.innerHeight;
-  // can.style.position = 'absolute';
-  // can.style.left = '0px';
-  // can.style.top = '0px';
-  // let con = can.getContext('2d');
-  // document.body.appendChild(can);
-  // drawHexGrid(con, window.innerWidth / 2, window.innerHeight / 2);
-  let board = new HexGameBoard(4);
+  cMenu = new HexMenu();
+}
+
+/**
+ * Draw a small preview map for a given board
+ * @param {HTMLElement} can the canvas
+ * @param {CanvasRenderingContext2D} con the context of the canvas
+ * @param {object} boardObj an object representing the board layout and move number
+ * @param {number} [scale] the scale, 1 means hexagons with a side length of 10 pixels
+ */
+function drawSmallMap(can, con, boardObj, scale = 1) {
+  let board = boardObj.board;
+  let hexSize = 10 * scale;
+  let xD = hexSize * Math.cos(Math.PI / 6);
+  let yD = hexSize * Math.sin(Math.PI / 6);
+  can.width = 2 * xD * board[0].length + xD;
+  can.height = (hexSize + yD) * board.length + 2 * yD;
+  drawHexGrid(con, xD * 1.5, (hexSize + yD) * (board.length - 0.5) + yD, 0.1 * scale, board[0].length, board.length, board)
 }
 
 /**
@@ -58,41 +66,74 @@ function coordsToString(coords) {
 /**
  * Draws a hexagon grid
  * @param {CanvasRenderingContext2D} con the context of the canvas the grid should be drawn on
- * @param {number} xO the x coordinate of the grid origin in pixels
- * @param {number} yO the y coordinate of the grid origin in pixels
- * @param {number} scale the scale, 1 means hexagons with a side length of 100 pixels
- * @param {number} width the number of hexagons to be drawn to the right and left of the origin
- * @param {number} height the number of hexagons to be drawn to the top and bottom of the origin
+ * @param {number} [xO] the x coordinate of the grid origin in pixels
+ * @param {number} [yO] the y coordinate of the grid origin in pixels
+ * @param {number} [scale] the scale, 1 means hexagons with a side length of 100 pixels
+ * @param {number} [width] the number of hexagons to be drawn to the right and left of the origin
+ * @param {number} [height] the number of hexagons to be drawn to the top and bottom of the origin
+ * @param {number[][]} [posArr] an array specifying where to draw the hexagons, NaN specifies not to draw a hexagon
  */
-function drawHexGrid(con, xO = 0, yO = 0, scale = 1, width = 2, height = 2) {
+function drawHexGrid(con, xO = 0, yO = 0, scale = 1, width = 2, height = 2, posArr = []) {
   con.save();
   con.translate(xO, yO);
   con.scale(scale, scale);
   let hexSize = 100;
   let xD = hexSize * Math.cos(Math.PI / 6);
   let yD = hexSize * Math.sin(Math.PI / 6);
-  for (let x = -width; x <= width; x++) {
-    for (let y = -height; y <= height; y++) {
-      let xp = x * (2 * xD) + (Math.abs(y) % 2 ? xD : 0);
-      let yp = - y * (hexSize + yD);
-      con.strokeStyle = 'black';
-      con.lineWidth = 5;
-      con.beginPath();
-      con.moveTo(xp - xD, yp - hexSize / 2);
-      con.lineTo(xp - xD, yp + hexSize / 2);
-      con.lineTo(xp, yp + hexSize / 2 + yD);
-      con.lineTo(xp + xD, yp + hexSize / 2);
-      con.lineTo(xp + xD, yp - hexSize / 2);
-      con.lineTo(xp, yp - hexSize / 2 - yD);
-      con.lineTo(xp - xD, yp - hexSize / 2);
-      con.closePath();
-      con.stroke();
 
-      con.font = Math.round(hexSize / 4) + 'px Arial';
-      con.fillStyle = 'black';
-      con.textAlign = 'center';
-      con.textBaseline = 'middle';
-      con.fillText(coordsToString(getCoords([x, y], 0)), xp, yp);
+  let xstart = -width; let xend = width;
+  let ystart = -height; let yend = height;
+  if (posArr.length == height && posArr[0].length == width) {
+    xstart = 0; xend = width - 1;
+    ystart = 0; yend = height - 1;
+  }
+
+  for (let x = xstart; x <= xend; x++) {
+    for (let y = ystart; y <= yend; y++) {
+      let yb = height - y - 1;
+      if (yb < 0 || yb >= posArr.length || x < 0 || x >= posArr[yb].length || !isNaN(posArr[yb][x])) {
+        let xp = x * (2 * xD) + (Math.abs(y) % 2 ? xD : 0);
+        let yp = - y * (hexSize + yD);
+        con.fillStyle = 'rgba(228, 246, 238, 1)';
+        con.beginPath();
+        con.moveTo(xp - xD, yp - hexSize / 2);
+        con.lineTo(xp - xD, yp + hexSize / 2);
+        con.lineTo(xp, yp + hexSize / 2 + yD);
+        con.lineTo(xp + xD, yp + hexSize / 2);
+        con.lineTo(xp + xD, yp - hexSize / 2);
+        con.lineTo(xp, yp - hexSize / 2 - yD);
+        con.lineTo(xp - xD, yp - hexSize / 2);
+        con.closePath();
+        con.fill();
+      }
+    }
+  }
+
+  for (let x = xstart; x <= xend; x++) {
+    for (let y = ystart; y <= yend; y++) {
+      let yb = height - y - 1;
+      if (yb < 0 || yb >= posArr.length || x < 0 || x >= posArr[yb].length || !isNaN(posArr[yb][x])) {
+        let xp = x * (2 * xD) + (Math.abs(y) % 2 ? xD : 0);
+        let yp = - y * (hexSize + yD);
+        con.strokeStyle = 'rgba(36, 63, 65, 1)';
+        con.lineWidth = 10;
+        con.beginPath();
+        con.moveTo(xp - xD, yp - hexSize / 2);
+        con.lineTo(xp - xD, yp + hexSize / 2);
+        con.lineTo(xp, yp + hexSize / 2 + yD);
+        con.lineTo(xp + xD, yp + hexSize / 2);
+        con.lineTo(xp + xD, yp - hexSize / 2);
+        con.lineTo(xp, yp - hexSize / 2 - yD);
+        con.lineTo(xp - xD, yp - hexSize / 2);
+        con.closePath();
+        con.stroke();
+
+        // con.font = Math.round(hexSize / 4) + 'px Arial';
+        // con.fillStyle = 'black';
+        // con.textAlign = 'center';
+        // con.textBaseline = 'middle';
+        // con.fillText(coordsToString(getCoords([x, y], 0)), xp, yp);
+      }
     }
   }
   con.restore();

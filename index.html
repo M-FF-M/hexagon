@@ -9,9 +9,33 @@
 
   <link rel="shortcut icon" href="hexagon.ico">
   <link rel="stylesheet" href="hexagon.css">
+  
+  <script language="javascript" type="text/javascript">
+
+    let FONTS_WERE_LOADED = false;
+    let cMenu;
+
+  </script>
+  <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js"></script>
   <script src="hexagon.js"></script>
   <script src="HexGameState.js"></script>
   <script src="HexGameBoard.js"></script>
+  <script src="HexMenu.js"></script>
+  <script language="javascript" type="text/javascript">
+
+    WebFont.load({
+      google: {
+        families: ['Merriweather']
+      },
+      active: () => fontsLoaded()
+    });
+
+    function fontsLoaded() {
+      FONTS_WERE_LOADED = true;
+      if (cMenu) cMenu.redraw();
+    }
+
+  </script>
 </head>
 
 <body onLoad="hexMain();">

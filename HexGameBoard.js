@@ -13,8 +13,9 @@ class HexGameBoard {
   /**
    * Constructs a new game board
    * @param {object|number} init either an object representing the board layout and move number or one of the preset board layouts (0 - 3 available)
+   * @param {HexMenu} [menu] the Hexagon game menu
    */
-  constructor(init) {
+  constructor(init, menu = null) {
     this._gameState = new HexGameState(init);
     this._canvas = document.createElement('canvas');
     this._canvas.width = window.innerWidth;
@@ -22,6 +23,7 @@ class HexGameBoard {
     this._canvas.style.position = 'absolute';
     this._canvas.style.left = '0px';
     this._canvas.style.top = '0px';
+    this._canvas.style.zIndex = '5';
     this._context = this._canvas.getContext('2d');
     this._scale = 1;
     this._origin = [window.innerWidth / 2, window.innerHeight / 2];
@@ -36,8 +38,13 @@ class HexGameBoard {
     this._lastMouseCoords = [0, 0];
     this._mouseIsDown = false;
 
+    this._isShutDown = false;
+    this._noOps = false;
+    this._menu = menu;
+
     window.addEventListener('resize', () => this.resize());
     window.addEventListener('wheel', evt => this.mouseWheel(evt));
+    window.addEventListener('keyup', evt => this.keyPress(evt));
     this._canvas.addEventListener('mousedown', evt => this.mouseDown(evt));
     this._canvas.addEventListener('mouseup', evt => this.mouseUp(evt));
     this._canvas.addEventListener('click', evt => this.mouseClick(evt));
@@ -47,9 +54,27 @@ class HexGameBoard {
   }
 
   /**
+   * Reactivate commands
+   */
+  reactivate() {
+    if (this._isShutDown) return;
+    this._noOps = false;
+  }
+
+  /**
+   * Remove this board from the webpage
+   */
+  shutDown() {
+    if (this._isShutDown) return;
+    document.body.removeChild(this._canvas);
+    this._isShutDown = true;
+  }
+
+  /**
    * Adapts the canvas to the window size
    */
   resize() {
+    if (this._isShutDown) return;
     this._canvas.width = window.innerWidth;
     this._canvas.height = window.innerHeight;
     this.redraw();
@@ -59,6 +84,7 @@ class HexGameBoard {
    * Redraws the current game board
    */
   redraw() {
+    if (this._isShutDown) return;
     this._hoverCoords = [-1, -1];
     let totMov = this._gameState.totalMoves;
     let maxSum = 0; for (let i = 0; i < 6; i++) maxSum += totMov - i > 0 ? totMov - i : 0;
@@ -188,7 +214,38 @@ class HexGameBoard {
     con.restore();
   }
 
+  /**
+   * Zoom in
+   */
+  zoomIn() {
+    if (this._isShutDown) return;
+    if (this._scale < 10) {
+      let xc = window.innerWidth / 2;
+      let yc = window.innerHeight / 2;
+      this._origin = [xc + (this._origin[0] - xc) * 1.5, yc + (this._origin[1] - yc) * 1.5];
+      this._scale *= 1.5;
+      this._checkOrigin();
+      this.redraw();
+    }
+  }
+
+  /**
+   * Zoom out
+   */
+  zoomOut() {
+    if (this._isShutDown) return;
+    if (this._scale > 0.1) {
+      let xc = window.innerWidth / 2;
+      let yc = window.innerHeight / 2;
+      this._origin = [xc + (this._origin[0] - xc) / 1.5, yc + (this._origin[1] - yc) / 1.5];
+      this._scale /= 1.5;
+      this._checkOrigin();
+      this.redraw();
+    }
+  }
+
   _checkOrigin() {
+    if (this._isShutDown) return;
     let xc = window.innerWidth / 2;
     let yc = window.innerHeight / 2;
     let [hexSize, xD, yD, scale, board] = [this._hexSize, this._xD, this._yD, this._scale, this._gameState.board];
@@ -206,6 +263,7 @@ class HexGameBoard {
   }
 
   _translate(nX, nY) {
+    if (this._isShutDown) return;
     const dx = this._lastMouseCoords[0] - nX;
     const dy = this._lastMouseCoords[1] - nY;
     this._origin[0] -= dx;
@@ -215,28 +273,37 @@ class HexGameBoard {
   }
 
   /**
+   * Should be called when a key was pressed
+   * @param {object} evt the event object
+   */
+  keyPress(evt) {
+    if (this._isShutDown || this._noOps) return;
+    const key = evt.key.toLowerCase();
+    if (key === '+') {
+      evt.preventDefault();
+      this.zoomIn();
+    } else if (key === '-') {
+      evt.preventDefault();
+      this.zoomOut();
+    } else if (key === 'm' && this._menu) {
+      evt.preventDefault();
+      this._menu.openMenu();
+      this._noOps = true;
+    }
+  }
+
+  /**
    * Should be called when the mouse wheel event is fired
    * @param {object} evt the event object
    */
   mouseWheel(evt) {
-    let xc = window.innerWidth / 2;
-    let yc = window.innerHeight / 2;
+    if (this._isShutDown || this._noOps) return;
     if (evt.deltaY < 0) {
       evt.preventDefault();
-      if (this._scale < 10) {
-        this._origin = [xc + (this._origin[0] - xc) * 1.5, yc + (this._origin[1] - yc) * 1.5];
-        this._scale *= 1.5;
-        this._checkOrigin();
-        this.redraw();
-      }
+      this.zoomIn();
     } else if (evt.deltaY > 0) {
       evt.preventDefault();
-      if (this._scale > 0.1) {
-        this._origin = [xc + (this._origin[0] - xc) / 1.5, yc + (this._origin[1] - yc) / 1.5];
-        this._scale /= 1.5;
-        this._checkOrigin();
-        this.redraw();
-      }
+      this.zoomOut();
     }
   }
 
@@ -245,6 +312,7 @@ class HexGameBoard {
    * @param {object} evt the event object
    */
   mouseDown(evt) {
+    if (this._isShutDown || this._noOps) return;
     this._mouseDownTime = (new Date()).getTime();
     this._mouseIsDown = true;
     this._lastMouseCoords = [evt.clientX, evt.clientY];
@@ -255,6 +323,7 @@ class HexGameBoard {
    * @param {object} evt the event object
    */
   mouseUp(evt) {
+    if (this._isShutDown || this._noOps) return;
     if ((new Date()).getTime() - this._mouseDownTime >= CLICK_DELAY) {
       this._translate(evt.clientX, evt.clientY);
     }
@@ -267,6 +336,7 @@ class HexGameBoard {
    * @param {object} evt the event object
    */
   mouseClick(evt) {
+    if (this._isShutDown || this._noOps) return;
     this._lastMouseCoords = [evt.clientX, evt.clientY];
     if ((new Date()).getTime() - this._mouseDownTime < CLICK_DELAY) {
       this.redraw();
@@ -283,6 +353,7 @@ class HexGameBoard {
    * @param {object} evt the event object
    */
   mouseLeave(evt) {
+    if (this._isShutDown || this._noOps) return;
     if (this._mouseIsDown && ((new Date()).getTime() - this._mouseDownTime >= CLICK_DELAY)) {
       this._translate(evt.clientX, evt.clientY);
     }
@@ -295,6 +366,7 @@ class HexGameBoard {
    * @param {object} evt the event object
    */
   mouseMove(evt) {
+    if (this._isShutDown || this._noOps) return;
     if (this._mouseIsDown && ((new Date()).getTime() - this._mouseDownTime >= CLICK_DELAY)) {
       this._translate(evt.clientX, evt.clientY);
     }
