@@ -194,8 +194,10 @@ class HexGameBoard {
     let p2width = con.measureText('Player 1').width;
     con.fillStyle = 'rgba(72, 180, 145, 1)';
     con.fillText('Player 1', - xD * 2 - p1width / 2, texty);
+    if (isNaN(winner) && !(this._gameState.currentMove % 2)) con.fillRect(- xD * 2 - p1width, texty + hexSize * 0.25, p1width, 4);
     con.fillStyle = 'rgba(193, 74, 64, 1)';
     con.fillText('Player 2', (textx + xD) * 2 + p2width / 2, texty);
+    if (isNaN(winner) && this._gameState.currentMove % 2) con.fillRect((textx + xD) * 2, texty + hexSize * 0.25, p2width, 4);
     if (this._gameState.sum != 0) {
       let importance = Math.abs(this._gameState.sum) / maxMaxSum;
       importance = 0.1 + (1 + (importance - 1) * (importance - 1) * (importance - 1)) * 0.9;
