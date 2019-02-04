@@ -87,6 +87,15 @@ class HexMenu {
     this._innerContainer.appendChild(this._explB);
 
     document.body.appendChild(this._container);
+    window.addEventListener('resize', () => this.resize());
+  }
+
+  /**
+   * Adapts the menu to the window size
+   */
+  resize() {
+    this._container.style.width = `${window.innerWidth}px`;
+    this._container.style.height = `${window.innerHeight}px`;
   }
 
   /**
