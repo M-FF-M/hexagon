@@ -47,6 +47,9 @@ class HexGameBoard {
     this._isShutDown = false;
     this._noOps = false;
     this._menu = menu;
+    
+    this._cMoveOpts = [];
+    this._hMoveOpts = [];
 
     window.addEventListener('resize', () => this.resize());
     window.addEventListener('wheel', evt => this.mouseWheel(evt));
@@ -145,7 +148,18 @@ class HexGameBoard {
           }
 
           if (board[by][x] == 0) {
-            if (fieldVals[by][x] != 0) {
+            if (by < this._cMoveOpts.length && x < this._cMoveOpts[by].length) {
+              if (this._cMoveOpts[by][x] == 0) {
+                con.fillStyle = 'rgba(36, 63, 65, 1)';
+                con.fillText('D', xp, yp);
+              } else if (this._cMoveOpts[by][x] == 1) {
+                con.fillStyle = 'rgba(193, 74, 64, 1)';
+                con.fillText('P2', xp, yp);
+              } else if (this._cMoveOpts[by][x] == -1) {
+                con.fillStyle = 'rgba(72, 180, 145, 1)';
+                con.fillText('P1', xp, yp);
+              }
+            } else if (fieldVals[by][x] != 0) {
               let importance = Math.abs(fieldVals[by][x]) / maxSum;
               importance = 0.1 + (1 - (importance - 1) * (importance - 1)) * 0.9;
               if (fieldVals[by][x] < 0) // good for player 1
@@ -302,6 +316,25 @@ class HexGameBoard {
       if (this._stateStack.length > 1) {
         this._stateStack.pop();
         this._gameState = this._stateStack[this._stateStack.length - 1];
+        this._cMoveOpts = [];
+        this._hMoveOpts = [];
+        this.redraw();
+      }
+    } else if (key === 'h') {
+      evt.preventDefault();
+      if (this._cMoveOpts.length == 0) {
+        if (this._hMoveOpts.length > 0) {
+          this._cMoveOpts = this._hMoveOpts;
+          this.redraw();
+        } else {
+          this._noOps = true;
+          this._cMoveOpts = getOptions(this._gameState);
+          this._noOps = false;
+          this.redraw();
+        }
+      } else {
+        this._hMoveOpts = this._cMoveOpts;
+        this._cMoveOpts = [];
         this.redraw();
       }
     }
@@ -357,8 +390,13 @@ class HexGameBoard {
       this.redraw();
       if (this._hoverCoords[0] != -1) {
         let nState = this._gameState.play(this._hoverCoords[0], this._hoverCoords[1]);
-        if (nState !== false) { this._gameState = nState; this._stateStack.push(this._gameState); }
-        this.redraw();
+        if (nState !== false) {
+          this._gameState = nState;
+          this._stateStack.push(this._gameState);
+          this._cMoveOpts = [];
+          this._hMoveOpts = [];
+          this.redraw();
+        }
       }
     }
   }

@@ -83,6 +83,7 @@ class HexMenu {
       <li>Mouse wheel and [+], [-] keys: zoom</li>
       <li>Drag mouse: move board</li>
       <li>[z] or [u] key: undo last move</li>
+      <li>[h] key: hint &ndash; try to brute force the winner in 1s (very naively, only works for up to about 10 empty fields)</li>
       <li>[m] key: open menu</li>
     </ul>`;
     this._innerContainer.appendChild(this._explB);
