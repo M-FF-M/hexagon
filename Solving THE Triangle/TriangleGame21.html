@@ -1,0 +1,90 @@
+<html>
+<head>
+	<script type="text/javascript">
+		var x = 0, p = 0;
+		var ids = Array(15);
+
+		function setValue(id) {
+			if (x == 20)
+				return;
+			if (document.getElementById(id).value == '') {
+				document.getElementById(id).value = Math.trunc(x / 2) + 1;
+				if (x % 2 == 0)
+					document.getElementById(id).style.color = 'blue';
+				else
+					document.getElementById(id).style.color = 'red';
+				ids[p] = id;
+				p += 1;
+				x += 1;
+			}
+			console.log(ids, p);
+		}
+
+		function undo() {
+			if (p == 0)
+				return;
+			p -= 1;
+			x -= 1;
+			var id = ids[p];
+			document.getElementById(id).value = '';
+			console.log(ids, p);
+		}
+	</script>
+	<style type="text/css">
+		div {
+			height:120px;
+		}
+
+		input {
+			font: 48px arial, sans-serif;
+			text-align: center;
+			width:100px;
+			height:100px;
+			padding:0px;
+			margin:10px;
+			vertical-align: middle;
+		}
+	</style>
+</head>
+<body>
+	<button onclick="undo();" style="height:50px; width:150px;">
+		Back
+	</button>
+	<br>
+	<center>
+	<div>
+		<input type="button" id="b0" value='' onclick="setValue('b0');">
+	</div>
+	<div>
+		<input type="button" id="b1" value='' onclick="setValue('b1');">
+		<input type="button" id="b2" value='' onclick="setValue('b2');">
+	</div>
+	<div>
+		<input type="button" id="b3" value='' onclick="setValue('b3');">
+		<input type="button" id="b4" value='' onclick="setValue('b4');">
+		<input type="button" id="b5" value='' onclick="setValue('b5');">
+	</div>
+	<div>
+		<input type="button" id="b6" value='' onclick="setValue('b6');">
+		<input type="button" id="b7" value='' onclick="setValue('b7');">
+		<input type="button" id="b8" value='' onclick="setValue('b8');">
+		<input type="button" id="b9" value='' onclick="setValue('b9');">
+	</div>
+	<div>
+		<input type="button" id="bA" value='' onclick="setValue('bA');">
+		<input type="button" id="bB" value='' onclick="setValue('bB');">
+		<input type="button" id="bC" value='' onclick="setValue('bC');">
+		<input type="button" id="bD" value='' onclick="setValue('bD');">
+		<input type="button" id="bE" value='' onclick="setValue('bE');">
+	</div>
+	<div>
+		<input type="button" id="bF" value='' onclick="setValue('bF');">
+		<input type="button" id="bG" value='' onclick="setValue('bG');">
+		<input type="button" id="bH" value='' onclick="setValue('bH');">
+		<input type="button" id="bI" value='' onclick="setValue('bI');">
+		<input type="button" id="bJ" value='' onclick="setValue('bJ');">
+		<input type="button" id="bK" value='' onclick="setValue('bK');">
+	</div>
+	</center>
+</body>
+</html>
