@@ -17,6 +17,7 @@ class HexGameBoard {
    */
   constructor(init, menu = null) {
     this._gameState = new HexGameState(init);
+    this._stateStack = [this._gameState];
     this._canvas = document.createElement('canvas');
     this._canvas.width = window.innerWidth;
     this._canvas.height = window.innerHeight;
@@ -33,6 +34,11 @@ class HexGameBoard {
     this._xD = this._hexSize * Math.cos(Math.PI / 6);
     this._yD = this._hexSize * Math.sin(Math.PI / 6);
     this._hoverCoords = [-1, -1];
+
+    let drawingHeight = (this._hexSize + this._yD) * (this._gameState.board.length + 2) + this._yD;
+    let drawingWidth = this._xD * 2 * (this._gameState.board[0].length + 1 + 2 * 2.5); // 2.5 is approximation for 'Player 1' text width
+    while (this._scale > 0.1 && (drawingWidth * this._scale > window.innerWidth) || (drawingHeight * this._scale > window.innerHeight))
+      this._scale /= 1.5;
 
     this._mouseDownTime = 0;
     this._lastMouseCoords = [0, 0];
@@ -191,7 +197,7 @@ class HexGameBoard {
     con.fillText(this._gameState.name, textx, texty2);
 
     let p1width = con.measureText('Player 1').width;
-    let p2width = con.measureText('Player 1').width;
+    let p2width = con.measureText('Player 2').width;
     con.fillStyle = 'rgba(72, 180, 145, 1)';
     con.fillText('Player 1', - xD * 2 - p1width / 2, texty);
     if (isNaN(winner) && !(this._gameState.currentMove % 2)) con.fillRect(- xD * 2 - p1width, texty + hexSize * 0.25, p1width, 4);
@@ -291,6 +297,13 @@ class HexGameBoard {
       evt.preventDefault();
       this._menu.openMenu();
       this._noOps = true;
+    } else if (key === 'z' || key === 'u') {
+      evt.preventDefault();
+      if (this._stateStack.length > 1) {
+        this._stateStack.pop();
+        this._gameState = this._stateStack[this._stateStack.length - 1];
+        this.redraw();
+      }
     }
   }
 
@@ -344,7 +357,7 @@ class HexGameBoard {
       this.redraw();
       if (this._hoverCoords[0] != -1) {
         let nState = this._gameState.play(this._hoverCoords[0], this._hoverCoords[1]);
-        if (nState !== false) this._gameState = nState;
+        if (nState !== false) { this._gameState = nState; this._stateStack.push(this._gameState); }
         this.redraw();
       }
     }

@@ -60,6 +60,18 @@ const DEFAULT_BOARDS = [
     ],
     moves: 7,
   },
+  {
+    name: 'Triangle 21',
+    board: [
+        [X, X, 0, X, X, X],
+      [X, X, 0, 0, X, X],
+        [X, 0, 0, 0, X, X],
+      [X, 0, 0, 0, 0, X],
+        [0, 0, 0, 0, 0, X],
+      [0, 0, 0, 0, 0, 0],
+    ],
+    moves: 10,
+  },
 ];
 
 /**
@@ -79,7 +91,7 @@ function calcSums(board) {
     for (let xc = 0; xc < board[yc].length; xc++) {
       if (!isNaN(board[yc][xc])) {
         let addNewVal = false;
-        let neighb = getNeighbors([xc, yc]);
+        let neighb = getNeighbors([xc, yc], board.length);
         for (let i = 0; i < neighb.length; i++) {
           let [x2, y2] = neighb[i];
           if (x2 >= 0 && x2 < board[0].length && y2 >= 0 && y2 < board.length && !isNaN(retBoard[y2][x2])) {
@@ -100,7 +112,7 @@ function calcSums(board) {
 class HexGameState {
   /**
    * Constructs a new game state
-   * @param {object|number} init either an object representing the board layout and move number or one of the preset board layouts (0 - 4 available)
+   * @param {object|number} init either an object representing the board layout and move number or one of the preset board layouts (see DEFAULT_BOARDS)
    */
   constructor(init) {
     /**
@@ -176,7 +188,7 @@ class HexGameState {
 
     let ns = this.sum;
     let addNewVal = false;
-    let neighb = getNeighbors([x, y]);
+    let neighb = getNeighbors([x, y], this.board.length);
     for (let i = 0; i < neighb.length; i++) {
       let [x2, y2] = neighb[i];
       if (x2 >= 0 && x2 < this.board[0].length && y2 >= 0 && y2 < this.board.length && !isNaN(this.board[y2][x2])) {
@@ -185,7 +197,7 @@ class HexGameState {
           addNewVal = true;
         }
         let removeVal = true;
-        let neighb2 = getNeighbors([x2, y2]);
+        let neighb2 = getNeighbors([x2, y2], this.board.length);
         for (let k = 0; k < neighb2.length; k++) {
           let [x3, y3] = neighb2[k];
           if (x3 >= 0 && x3 < this.board[0].length && y3 >= 0 && y3 < this.board.length && !isNaN(nfv[y3][x3])) {

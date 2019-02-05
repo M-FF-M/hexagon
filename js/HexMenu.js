@@ -82,6 +82,7 @@ class HexMenu {
       <li>Click: make move</li>
       <li>Mouse wheel and [+], [-] keys: zoom</li>
       <li>Drag mouse: move board</li>
+      <li>[z] or [u] key: undo last move</li>
       <li>[m] key: open menu</li>
     </ul>`;
     this._innerContainer.appendChild(this._explB);

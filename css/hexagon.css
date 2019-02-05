@@ -1,6 +1,7 @@
 
 .hex-menu {
   background-color: rgba(255, 255, 255, 0.75);
+  overflow: auto;
 }
 
 .hex-menu-inner {
@@ -22,6 +23,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 input[type=button] {

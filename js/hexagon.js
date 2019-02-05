@@ -39,11 +39,12 @@ function getCoords(coords, dir) {
 /**
  * Get a list of the neighboring hexagons
  * @param {number[]} coords the x and y coordinates of the current hexagon
+ * @param {number} [parity] bit to change the parity of the line numbers (can in fact be any number, will be taken mod 2), 1: don't change
  * @return {number[][]} an array with the coordinates of the six adjoining hexagons
  */
-function getNeighbors(coords) {
+function getNeighbors(coords, parity = 0) {
   let [x, y] = coords;
-  if (Math.abs(y) % 2) {
+  if ((Math.abs(y) + parity + 1) % 2) {
     return [
       [x, y+1], [x+1, y+1], [x+1, y], [x+1, y-1], [x, y-1], [x-1, y]
     ];
