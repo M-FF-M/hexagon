@@ -1,16 +1,45 @@
+// Requires hexagon.js, AbstractHexState.js
+
+/**
+ * Converts a game state into an optimized format, if possible
+ * @param {AbstractHexState} state the game state
+ * @return {AbstractHexState} the state in optimized format (or the old state, if optimization was not possible)
+ */
+function toOptIfPossible(state) {
+  if (state instanceof HexGameState) {
+    let nFields = 0;
+    for (let y = 0; y < state.board.length; y++) {
+      for (let x = 0; x < state.board[y].length; x++)
+        nFields += isNaN(state.board[y][x]) ? 0 : 1;
+    }
+    if (nFields == state.totalMoves * 2 + 1)
+      state = fromHexGameState(state); // use the optimized version if only one field remains empty
+  }
+  return state;
+}
+
 /**
  * Non-optimized Hexagon game solver
  */
 class HexSolver {
   /**
    * Create a new game solver for a given state
-   * @param {HexGameState} state the state to solve
-   * @param {number} [timelimit] the time limit, in ms
+   * @param {AbstractHexState} state the state to solve
+   * @param {number} [timelimit] the time limit, in ms; pass NaN for no time limit
    */
   constructor(state, timelimit = 1000) {
     this._timelimit = timelimit;
     this._starttime = -1;
     this._state = state;
+    this._statesSeen = 0;
+  }
+
+  /**
+   * The number of states that were considered while solving the board position
+   * @return {number} the number of states
+   */
+  get searchspaceSize() {
+    return this._statesSeen;
   }
 
   /**
@@ -34,7 +63,8 @@ class HexSolver {
   }
 
   _solveState(state, mov) {
-    if ((new Date()).getTime() - this._starttime > this._timelimit) return NaN;
+    if (!isNaN(this._timelimit) && ((new Date()).getTime() - this._starttime > this._timelimit)) return NaN;
+    this._statesSeen++;
     let winner = state.checkWinner();
     if (isNaN(winner)) {
       let win = mov * (-1);
@@ -56,15 +86,89 @@ class HexSolver {
 }
 
 /**
- * Get the move options
- * @param {HexGameState} state the state to solve
- * @param {number} [timelimit] the time limit, in ms
- * @return {number[][]} an empty array if the timelimit was reached, otherwise an array containing -1, 0, 1, indicating who would win with this move
+ * Randomized Hexagon game solver
  */
-function getOptions(state, timelimit = 1000) {
+class HexRandomSolver {
+  /**
+   * Create a new game solver for a given state
+   * @param {AbstractHexState} state the state to solve
+   * @param {number} freeFields the current number of empty fields
+   * @param {number} switchDepth if only switchDepth number of fields are empty, the BF solver will be used
+   * @param {number} [timelimit] the time limit, in ms
+   */
+  constructor(state, freeFields, switchDepth, timelimit = 1000) {
+    this._freeFields = freeFields;
+    if (this._freeFields < 2) throw new Error('There must be at least two free fields for a state to be worth solving!');
+    this._switchDepth = switchDepth;
+    this._timelimit = timelimit;
+    this._starttime = -1;
+    this._state = state;
+    this._samplesTaken = 0;
+    this._acc = 0;
+  }
+
+  /**
+   * The number of samples that were taken
+   * @return {number} the number of samples
+   */
+  get sampleNumber() {
+    return this._samplesTaken;
+  }
+
+  /**
+   * Solve the given state (can only be called once per instance)
+   * @return {number} a value in the interval [-1, 1], NaN for already running
+   */
+  solve() {
+    if (this._starttime >= 0) return NaN;
+    this._starttime = (new Date()).getTime();
+    return this._solveState(this._state);
+  }
+
+  _solveState(state) {
+    while ((new Date()).getTime() - this._starttime <= this._timelimit) {
+      let ff = this._freeFields;
+      let cstate = state;
+      let rnd_sub = 0;
+      if (this._switchDepth > 1)
+        rnd_sub = Math.round(Math.random()); // randomly subtract 1 so both players sometimes move first when BF kicks in
+      while (ff > this._switchDepth - rnd_sub) {
+        let field = Math.floor(Math.random() * ff);
+        let cnt = 0;
+        for (let y = 0; y < cstate.board.length && cnt <= field; y++) {
+          for (let x = 0; x < cstate.board[y].length && cnt <= field; x++) {
+            if (cstate.board[y][x] == 0) {
+              if (cnt == field) {
+                cstate = cstate.play(x, cstate.board.length - y - 1);
+              }
+              cnt++;
+            }
+          }
+        }
+        ff--;
+      }
+      let res = (new HexSolver(cstate, NaN)).solve();
+      if (!isNaN(res)) {
+        this._samplesTaken++;
+        this._acc += res;
+      }
+    }
+    return this._acc / this._samplesTaken;
+  }
+}
+
+/**
+ * Get the move options via brute force
+ * @param {AbstractHexState} state the state to solve
+ * @param {number} [timelimit] the time limit, in ms
+ * @return {number[][][]} an array with two values - at index 0: an empty array if the timelimit was reached, otherwise an array containing -1, 0, 1,
+ * indicating who would win with this move / at index 1: the number of states that were visited during BF search
+ */
+function getOptionsBF(state, timelimit = 1000) {
   let start = (new Date()).getTime();
   let resBoard = [];
   let cWinner = state.checkWinner();
+  let stateNum = 0;
   for (let y = 0; y < state.board.length; y++) {
     resBoard[y] = [];
     for (let x = 0; x < state.board[y].length; x++) {
@@ -73,13 +177,81 @@ function getOptions(state, timelimit = 1000) {
         if (nState !== false) {
           let solver = new HexSolver(nState, timelimit - ((new Date()).getTime() - start));
           resBoard[y][x] = solver.solve();
-          if (isNaN(resBoard[y][x])) return [];
+          stateNum += solver.searchspaceSize;
+          if (isNaN(resBoard[y][x])) return [[], stateNum];
         } else {
           resBoard[y][x] = isNaN(cWinner) ? 0 : cWinner;
         }
       } else {
         resBoard[y][x] = 0;
       }
+    }
+  }
+  return [resBoard, stateNum];
+}
+
+/**
+ * Get the move options via random sampling
+ * @param {AbstractHexState} state the state to solve
+ * @param {number} statesInLimit a number indicating the number of states that can be evaluated within the timelimit
+ * @param {number} [timelimit] the time limit, in ms
+ * @return {number[][][]} an array with two values - at index 0: an empty array if an error ocurred, or an array containing numbers in the interval [-1, 1]
+ * indicating the move value gained by random sampling / at index 1: the number of random samples that were taken
+ */
+function getOptionsRand(state, statesInLimit, timelimit = 1000) {
+  let timePerState = timelimit / statesInLimit;
+  let freeFields = 0; let nFields = 0;
+  for (let y = 0; y < state.board.length; y++) {
+    for (let x = 0; x < state.board[y].length; x++) {
+      freeFields += state.board[y][x] == 0 ? 1 : 0;
+      nFields += isNaN(state.board[y][x]) ? 0 : 1;
+    }
+  }
+  let f = nFields - state.totalMoves * 2; let d = 1;
+  while (f * timePerState <= timelimit / 4000 && d < freeFields) {
+    d++; f = d * f;
+  }
+  d += nFields - state.totalMoves * 2 - 1;
+  let sampleNum = 0;
+  let resBoard = [];
+  let cWinner = state.checkWinner();
+  for (let y = 0; y < state.board.length; y++) {
+    resBoard[y] = [];
+    for (let x = 0; x < state.board[y].length; x++) {
+      if (state.board[y][x] == 0) {
+        let nState = state.play(x, state.board.length - y - 1);
+        if (nState !== false) {
+          let solver = new HexRandomSolver(nState, freeFields - 1, d, timelimit / freeFields);
+          resBoard[y][x] = solver.solve();
+          sampleNum += solver.sampleNumber;
+          if (isNaN(resBoard[y][x])) return [[], sampleNum];
+        } else {
+          resBoard[y][x] = isNaN(cWinner) ? 0 : cWinner;
+        }
+      } else {
+        resBoard[y][x] = 0;
+      }
+    }
+  }
+  return [resBoard, sampleNum];
+}
+
+/**
+ * Get a value for every possible move. For half of the provided time limit, a brute force search will be executed. If it fails, the other half of the time
+ * will be used for random move sampling.
+ * @param {AbstractHexState} state the state to solve
+ * @param {number} [timelimit] the time limit, in ms
+ * @return {number[][]} an array containing -1, 0, 1, indicating who would win with this move if BF was succesfull, otherwise an array containing numbers
+ * in the interval [-1+3, 1+3] indicating the move value gained by random sampling.
+ */
+function getOptionValues(state, timelimit = 2000) {
+  state = toOptIfPossible(state);
+  let [resBoard, stateNum] = getOptionsBF(state, timelimit / 2);
+  if (resBoard.length === 0) {
+    [resBoard, stateNum] = getOptionsRand(state, stateNum, timelimit / 2);
+    for (let y = 0; y < resBoard.length; y++) {
+      for (let x = 0; x < resBoard[y].length; x++)
+        resBoard[y][x] += 3;
     }
   }
   return resBoard;

@@ -1,42 +1,35 @@
 // Requires hexagon.js, AbstractHexState.js
 
 /**
- * Calculates the sums on the empty field
- * @param {number[][]} board the current board state
- * @return {any[]} an array - at index 0: an array with the sums for each field / at index 1: the overall sum
+ * Convert a HexGameState to a HexGameStateOpt
+ * @param {HexGameState} state the state to be converted
+ * @return {HexGameStateOpt} the converted state
  */
-function calcSums(board) {
-  let retBoard = [];
-  let retSum = 0;
-  for (let yc = 0; yc < board.length; yc++) {
-    retBoard[yc] = [];
-    for (let xc = 0; xc < board[yc].length; xc++)
-      retBoard[yc][xc] = board[yc][xc] !== 0 ? NaN : 0;
-  }
-  for (let yc = 0; yc < board.length; yc++) {
-    for (let xc = 0; xc < board[yc].length; xc++) {
-      if (!isNaN(board[yc][xc])) {
-        let addNewVal = false;
-        let neighb = getNeighbors([xc, yc], board.length);
-        for (let i = 0; i < neighb.length; i++) {
-          let [x2, y2] = neighb[i];
-          if (x2 >= 0 && x2 < board[0].length && y2 >= 0 && y2 < board.length && !isNaN(retBoard[y2][x2])) {
-            retBoard[y2][x2] += board[yc][xc];
-            addNewVal = true;
-          }
-        }
-        if (addNewVal) retSum += board[yc][xc];
-      }
+function fromHexGameState(state) {
+  let nfv = []; let nboard = []; let ns = 0;
+  for (let y = 0; y < state.board.length; y++) {
+    nfv[y] = []; nboard[y] = [];
+    for (let x = 0; x < state.board[y].length; x++) {
+      nboard[y][x] = state.board[y][x];
+      nfv[y][x] = state.fieldVals[y][x];
+      if (!isNaN(nfv[y][x])) ns += nfv[y][x];
     }
   }
-  return [retBoard, retSum];
+  return new HexGameStateOpt({
+    board: nboard,
+    fieldVals: nfv,
+    moves: state.totalMoves,
+    currentMove: state.currentMove,
+    name: state.name,
+    sum: ns,
+  });
 }
 
 /**
- * Represents a game state of the Hexagon game. This class supports the general game: an arbitrary number of fields can remain empty in the end,
- * the sum of all fields neighboring empty fields is used to determine the winner.
+ * Represents a game state of the Hexagon game. This class is optimized for the use in search trees for determining the winner. Only supports the version
+ * where a single field remains empty.
  */
-class HexGameState extends AbstractHexState {
+class HexGameStateOpt extends AbstractHexState {
   /**
    * Constructs a new game state
    * @param {object|number} init either an object representing the board layout and move number or one of the preset board layouts (see DEFAULT_BOARDS)
@@ -53,6 +46,11 @@ class HexGameState extends AbstractHexState {
       this._totalMoves = DEFAULT_BOARDS[init].moves;
       this._board = DEFAULT_BOARDS[init].board;
       this._name = DEFAULT_BOARDS[init].name;
+      for (let y = 0; y < this._board.length; y++) {
+        this._fieldVals[y] = [];
+        for (let x = 0; x < this._board[y].length; x++)
+          this._fieldVals[y][x] = this._board[y][x];
+      }
     } else {
       this._totalMoves = init.moves;
       this._board = init.board;
@@ -60,11 +58,7 @@ class HexGameState extends AbstractHexState {
       if (init.currentMove) this._currentMove = init.currentMove;
       if (init.fieldVals && (typeof init.sum === 'number')) { this._fieldVals = init.fieldVals; this._sum = init.sum; }
     }
-    if (this._fieldVals.length == 0) {
-      let [fV, s] = calcSums(this._board);
-      this._fieldVals = fV;
-      this._sum = s;
-    }
+    if (this._fieldVals.length == 0) throw new Error('HexGameStateOpt expects fieldVals and sum to be set in the init object!');
   }
 
   /**
@@ -138,31 +132,19 @@ class HexGameState extends AbstractHexState {
       }
     }
 
-    let ns = this._sum;
-    let addNewVal = false;
+    let ns = this._sum - this._fieldVals[y][x];
     let neighb = getNeighbors([x, y], this._board.length);
     for (let i = 0; i < neighb.length; i++) {
       let [x2, y2] = neighb[i];
       if (x2 >= 0 && x2 < this._board[0].length && y2 >= 0 && y2 < this._board.length && !isNaN(this._board[y2][x2])) {
         if (!isNaN(nfv[y2][x2])) {
           nfv[y2][x2] += nextNumber;
-          addNewVal = true;
+          ns += nextNumber;
         }
-        let removeVal = true;
-        let neighb2 = getNeighbors([x2, y2], this._board.length);
-        for (let k = 0; k < neighb2.length; k++) {
-          let [x3, y3] = neighb2[k];
-          if (x3 >= 0 && x3 < this._board[0].length && y3 >= 0 && y3 < this._board.length && !isNaN(nfv[y3][x3])) {
-            removeVal = false;
-            break;
-          }
-        }
-        if (removeVal) ns -= this._board[y2][x2];
       }
     }
-    if (addNewVal) ns += nextNumber;
 
-    return new HexGameState({ name: this._name, moves: this._totalMoves, currentMove: this._currentMove + 1, board: newBoard, fieldVals: nfv, sum: ns });
+    return new HexGameStateOpt({ name: this._name, moves: this._totalMoves, currentMove: this._currentMove + 1, board: newBoard, fieldVals: nfv, sum: ns });
   }
 
   /**

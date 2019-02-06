@@ -47,22 +47,23 @@ class HexMenu {
     this._boardDivs = [];
     this._boardCans = [];
     this._boardCons = [];
-    for (let i = 0; i < DEFAULT_BOARDS.length; i++) {
-      this._boardDivs[i] = document.createElement('div');
-      this._boardDivs[i].setAttribute('class', 'hex-menu-map');
-      this._boardDivs[i].addEventListener('click', () => this.selectMap(i));
+    for (let i = -1; i < DEFAULT_BOARDS.length; i++) {
+      this._boardDivs[i + 1] = document.createElement('div');
+      this._boardDivs[i + 1].setAttribute('class', 'hex-menu-map');
+      this._boardDivs[i + 1].addEventListener('click', () => this.selectMap(i));
 
       let bName = document.createElement('div');
       bName.setAttribute('class', 'hex-menu-map-name');
-      bName.innerHTML = DEFAULT_BOARDS[i].name;
-      this._boardDivs[i].appendChild(bName);
+      bName.innerHTML = i == -1 ? 'Random' : DEFAULT_BOARDS[i].name;
+      this._boardDivs[i + 1].appendChild(bName);
 
-      this._boardCans[i] = document.createElement('canvas');
-      this._boardCons[i] = this._boardCans[i].getContext('2d');
-      drawSmallMap(this._boardCans[i], this._boardCons[i], DEFAULT_BOARDS[i]);
-      this._boardDivs[i].appendChild(this._boardCans[i]);
+      this._boardCans[i + 1] = document.createElement('canvas');
+      this._boardCons[i + 1] = this._boardCans[i + 1].getContext('2d');
+      drawSmallMap(this._boardCans[i + 1], this._boardCons[i + 1],
+        i == -1 ? { board: [[0, X, 0, X], [0, 0, X, 0], [0, X, X, X], [X, X, 0, 0]] } : DEFAULT_BOARDS[i]);
+      this._boardDivs[i + 1].appendChild(this._boardCans[i + 1]);
 
-      this._boardContainer.appendChild(this._boardDivs[i]);
+      this._boardContainer.appendChild(this._boardDivs[i + 1]);
     }
     this._innerContainer.appendChild(this._boardContainer);
     
@@ -83,7 +84,8 @@ class HexMenu {
       <li>Mouse wheel and [+], [-] keys: zoom</li>
       <li>Drag mouse: move board</li>
       <li>[z] or [u] key: undo last move</li>
-      <li>[h] key: hint &ndash; try to brute force the winner in 1s (very naively, only works for up to about 10 empty fields)</li>
+      <li>[h] key: hint &ndash; try to brute force the winner in 1s (very naively, only works for up to about 10 empty fields). If brute force
+        yields no solution within 1s, random sampling is used to predict the outcome of the game.</li>
       <li>[m] key: open menu</li>
     </ul>`;
     this._innerContainer.appendChild(this._explB);

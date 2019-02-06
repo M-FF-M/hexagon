@@ -1,4 +1,4 @@
-// Requires hexagon.js, HexGameState.js
+// Requires hexagon.js, HexGameState.js, HexSolver.js
 
 /**
  * Delay, in ms, after which a click is recognized as a drag
@@ -12,10 +12,38 @@ const CLICK_DELAY = 250;
 class HexGameBoard {
   /**
    * Constructs a new game board
-   * @param {object|number} init either an object representing the board layout and move number or one of the preset board layouts (0 - 3 available)
+   * @param {object|number} init either an object representing the board layout and move number or one of the preset board layouts (see DEFAULT_BOARDS);
+   * use -1 for a random board layout
    * @param {HexMenu} [menu] the Hexagon game menu
    */
   constructor(init, menu = null) {
+    if (init == -1) { // random map
+      let sz = Math.floor(Math.random() * 7 + 4);
+      let board = [];
+      let fields = 0; let lx = 0; let ly = 0;
+      for (let y = 0; y < sz; y++) {
+        board[y] = [];
+        for (let x = 0; x < sz; x++) {
+          if ((y + sz + 1) % 2 && x == sz - 1) board[y][x] = NaN;
+          else {
+            board[y][x] = Math.random() > 0.5 ? 0 : NaN;
+            if (!isNaN(board[y][x])) {
+              fields++;
+              lx = x; ly = y;
+            }
+          }
+        }
+      }
+      if (fields % 2 == 0) {
+        board[ly][lx] = NaN;
+        fields--;
+      }
+      init = {
+        name: 'Random Board',
+        board,
+        moves: (fields - 1) / 2,
+      };
+    }
     this._gameState = new HexGameState(init);
     this._stateStack = [this._gameState];
     this._canvas = document.createElement('canvas');
@@ -158,6 +186,18 @@ class HexGameBoard {
               } else if (this._cMoveOpts[by][x] == -1) {
                 con.fillStyle = 'rgba(72, 180, 145, 1)';
                 con.fillText('P1', xp, yp);
+              } else if (this._cMoveOpts[by][x] >= 2 && this._cMoveOpts[by][x] <= 4) {
+                let val = this._cMoveOpts[by][x] - 3;
+                if (Math.abs(val) < 0.1) {
+                  con.fillStyle = 'rgba(36, 63, 65, 0.5)';
+                  con.fillText(Math.round(val * 100) / 100, xp, yp);
+                } else if (val > 0) {
+                  con.fillStyle = `rgba(193, 74, 64, ${0.1 + val * 0.9})`;
+                  con.fillText(Math.round(val * 100) / 100, xp, yp);
+                } else if (val < 0) {
+                  con.fillStyle = `rgba(72, 180, 145, ${0.1 - val * 0.9})`;
+                  con.fillText(Math.round(val * 100) / 100, xp, yp);
+                }
               }
             } else if (fieldVals[by][x] != 0) {
               let importance = Math.abs(fieldVals[by][x]) / maxSum;
@@ -328,7 +368,7 @@ class HexGameBoard {
           this.redraw();
         } else {
           this._noOps = true;
-          this._cMoveOpts = getOptions(this._gameState);
+          this._cMoveOpts = getOptionValues(this._gameState);
           this._noOps = false;
           this.redraw();
         }
