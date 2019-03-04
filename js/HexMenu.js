@@ -88,7 +88,8 @@ class HexMenu {
         <a href="https://webassembly.org/" target="_blank">WebAssembly</a>). If the game can be solved, P1, P2 and D indicators
         will appear on the game board to mark which moves would lead to player 1 winning, player 2 winning or a draw, respectively.
         If brute force yields no solution within 20s, random sampling is used to predict the outcome of the game. In this case,
-        numbers will appear on the game board, inidicating the average outcome (between -1 and 1).</li>
+        numbers will appear on the game board, inidicating the average outcome (between -1 and 1).<br />
+        <b>Note:</b> The page will be unresponsive until the time limit is reached or a solution was found.</li>
       <li>[m] key: open menu</li>
     </ul>`;
     this._innerContainer.appendChild(this._explB);
