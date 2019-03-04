@@ -13,10 +13,71 @@
   <script language="javascript" type="text/javascript">
 
     let FONTS_WERE_LOADED = false;
+    let WASM_WAS_LOADED = false;
     let cMenu;
+
+    /**
+     * Create a 32-bit integer array
+     * @param {number[]} arr the JavaScript array that should be saved in WASM memory
+     * @return {number} the array offset in memory
+     */
+    function WASM_CreateArr(arr) {
+      if (!WASM_WAS_LOADED) throw new Error('Called WASM_CreateArr before WASM was loaded!');
+      let offset = Module._malloc(arr.length * 4);
+      for (let i = 0; i < arr.length; i++) {
+        Module.setValue(offset + i * 4, arr[i], 'i32');
+      }
+      return offset;
+    }
+
+    /**
+     * Read the 32-bit integer array at the given offset
+     * @param {number} offset the offset of the array (returned by WASM_CreateArr)
+     * @param {number} len the length of the array to read
+     * @return {number[]} the array
+     */
+    function WASM_ReadArr(offset, len) {
+      if (!WASM_WAS_LOADED) throw new Error('Called WASM_ReadArr before WASM was loaded!');
+      let res = [];
+      for (let i = 0; i < len; i++) {
+        res[i] = Module.getValue(offset + i * 4, 'i32');
+      }
+      return res;
+    }
+
+    /**
+     * Free the memory used by a WASM array
+     * @param {number} offset the offset of the array (returned by WASM_CreateArr)
+     */
+    function WASM_FreeArr(offset) {
+      if (!WASM_WAS_LOADED) throw new Error('Called WASM_FreeArr before WASM was loaded!');
+      Module._free(offset);
+    }
+
+    /**
+     * Call a WASM function that receives an array as argument
+     * @param {string} fct the function name
+     * @param {number} arroffset the offset of the array that should be passed as argument (returned by WASM_CreateArr)
+     * @param {any} [rettype] the expected return type (null or a string like 'number')
+     * @return {any} the result of the function execution
+     */
+    function WASM_CallArrFct(fct, arroffset, rettype = null) {
+      if (!WASM_WAS_LOADED) throw new Error('Called WASM_CallArrFct before WASM was loaded!');
+      return Module.ccall(fct, // name of C function
+        rettype, // return type
+        ['number'], // argument types
+        [arroffset]); // arguments
+    }
+
+    var Module = {
+      onRuntimeInitialized: function() {
+        WASM_WAS_LOADED = true;
+      }
+    };
 
   </script>
   <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js"></script>
+  <script async type="text/javascript" src="js/bf.js"></script>
   <script src="js/hexagon.js"></script>
   <script src="js/AbstractHexState.js"></script>
   <script src="js/HexGameState.js"></script>

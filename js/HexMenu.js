@@ -84,8 +84,11 @@ class HexMenu {
       <li>Mouse wheel and [+], [-] keys: zoom</li>
       <li>Drag mouse: move board</li>
       <li>[z] or [u] key: undo last move</li>
-      <li>[h] key: hint &ndash; try to brute force the winner in 1s (very naively, only works for up to about 10 empty fields). If brute force
-        yields no solution within 1s, random sampling is used to predict the outcome of the game.</li>
+      <li>[h] key: hint &ndash; try to brute force the winner in 20s (using a C++ program that was compiled to
+        <a href="https://webassembly.org/" target="_blank">WebAssembly</a>). If the game can be solved, P1, P2 and D indicators
+        will appear on the game board to mark which moves would lead to player 1 winning, player 2 winning or a draw, respectively.
+        If brute force yields no solution within 20s, random sampling is used to predict the outcome of the game. In this case,
+        numbers will appear on the game board, inidicating the average outcome (between -1 and 1).</li>
       <li>[m] key: open menu</li>
     </ul>`;
     this._innerContainer.appendChild(this._explB);

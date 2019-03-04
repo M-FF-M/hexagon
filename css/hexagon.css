@@ -65,3 +65,11 @@ input[type=button], .hex-menu-map {
 input[type=button]:hover, .hex-menu-map:hover {
   background-position: 0% 0%;
 }
+
+a:link, a:visited {
+  color: rgba(36, 63, 65, 1);
+}
+
+a:link:hover, a:link:active, a:visited:hover, a:visited:active {
+  color: rgba(193, 74, 64, 1);
+}

@@ -245,6 +245,80 @@ function getOptionsRand(state, statesInLimit, timelimit = 1000) {
  * in the interval [-1+3, 1+3] indicating the move value gained by random sampling.
  */
 function getOptionValues(state, timelimit = 2000) {
+  if (isNaN(state.checkWinner()) && WASM_WAS_LOADED) {
+    let nFields = 0;
+    let backArr = [];
+    let fieldArr = [];
+    let adjArr = [];
+    for (let y = 0; y < state.board.length; y++) {
+      backArr[y] = [];
+      for (let x = 0; x < state.board[y].length; x++) {
+        nFields += isNaN(state.board[y][x]) ? 0 : 1;
+        if (!isNaN(state.board[y][x])) {
+          fieldArr.push([x, y]);
+          backArr[y][x] = fieldArr.length - 1;
+          adjArr.push([]);
+          let adj_idx = adjArr.length - 1;
+          let neighb = getNeighbors([x, y], state.board.length);
+          for (let i = 0; i < neighb.length; i++) {
+            let [x2, y2] = neighb[i];
+            if (x2 >= 0 && x2 < state.board[0].length && y2 >= 0 && y2 < state.board.length && !isNaN(state.board[y2][x2])) {
+              adjArr[adj_idx].push([x2, y2]);
+            }
+          }
+        } else {
+          backArr[y][x] = -1;
+        }
+      }
+    }
+    if (nFields <= 101 && nFields == state.totalMoves * 2 + 1) { // only one field remains empty, try to use the optimized WASM BF solution
+      let cInitArray = [];
+      cInitArray.push(nFields);
+      cInitArray.push((1 + Math.floor(state.currentMove / 2)) * (state.currentMove % 2 ? -1 : 1) * (-1)); // ! C++ solution uses inverted numbers
+      for (let i = 0; i < adjArr.length; i++) {
+        for (let k = 0; k < adjArr[i].length; k++) {
+          let [x, y] = adjArr[i][k];
+          cInitArray.push(backArr[y][x]);
+        }
+        cInitArray.push(-1);
+      }
+      let cStateArray = [];
+      for (let i = 0; i < fieldArr.length; i++) {
+        let [x, y] = fieldArr[i];
+        cStateArray.push(-state.board[y][x]); // ! C++ solution uses inverted numbers
+      }
+
+      let sol_found = false; let resBoard = [];
+      let cArray1 = WASM_CreateArr(cInitArray);
+      let cArray2 = WASM_CreateArr(cStateArray);
+      WASM_CallArrFct('init_adj', cArray1);
+      WASM_CallArrFct('init_state', cArray2);
+      let sol = WASM_CallArrFct('solve_current', cArray2, 'number');
+      if (Math.abs(sol) < 2000) {
+        sol_found = true;
+        // console.log('Used WASM!');
+        let solArray = WASM_ReadArr(cArray2, cStateArray.length);
+        for (let y = 0; y < state.board.length; y++) {
+          resBoard[y] = [];
+          for (let x = 0; x < state.board[y].length; x++) {
+            if (state.board[y][x] == 0) {
+              let idx = backArr[y][x];
+              if (solArray[idx] > 0) resBoard[y][x] = state.currentMove % 2 ? 1 : -1;
+              else if (solArray[idx] < 0) resBoard[y][x] = state.currentMove % 2 ? -1 : 1;
+              else resBoard[y][x] = 0;
+            } else {
+              resBoard[y][x] = 0;
+            }
+          }
+        }
+      } else {
+        // console.log('WASM time limit!');
+      }
+      WASM_FreeArr(cArray1);
+      WASM_FreeArr(cArray2);
+      if (sol_found) return resBoard;
+    }
+  }
   state = toOptIfPossible(state);
   let [resBoard, stateNum] = getOptionsBF(state, timelimit / 2);
   if (resBoard.length === 0) {
