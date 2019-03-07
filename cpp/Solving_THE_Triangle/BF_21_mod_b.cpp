@@ -2,11 +2,11 @@
 using namespace std;
 
 const int F = 21; // triangle with 5 lines has 15 fields
-int state[F] = {0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0}, m = -2; // game board
+int state[F] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, m = -1; // game board
 vector < int > s[F]; // adjacency of fields
 int frf[F];	// array of free fields
 int p = 0;	// amount of free fields (length of frf)
-
+const int RAND_TRIES = 3;
 
 void init() {
 	ifstream st("settings21");
@@ -71,12 +71,54 @@ int prev(int m) {
 int solve(int beta_pruning, bool debug = false) {
  	if (p == 1) {
  		int res = check();
- 	 	return res <= 0 ? -1 : 1;
+ 	 	return res;
  	}
 
 	int res = -100;
-	for (int i = 0; i < p && i < 2 && ((res <= 0 && res < beta_pruning) || debug); i++) {
-		int x = frf[rand() % p];
+	int frf_cop[F];
+	memcpy(frf_cop, frf, p * sizeof(int));
+	random_shuffle(frf, frf + p);
+	int radd = rand() % 2 ? 1 : 0;
+	for (int i = 0; i < p && i < (RAND_TRIES - radd) && ((res <= 0 && res < beta_pruning) || debug); i++) {
+		int x = frf[i];
+	 	assert(state[x] == 0);
+
+	 	state[x] = m;
+	 	m = next(m);
+	 	p--;
+		swap(frf[i], frf[p]);
+
+	 	int cur = -solve(debug ? 100 : -res);
+
+	 	if (debug) {
+			if (cur > 0)
+				cout << "WIN with " << x << endl;
+			else if (cur == 0)
+				cout << "DRAW with " << x << endl;
+			else
+				cout << "LOSE with " << x << endl;
+	 	}
+
+		res = max(res, cur);
+		
+		swap(frf[i], frf[p]);
+		p++;
+		state[x] = 0;
+		m = prev(m);
+	}
+	memcpy(frf, frf_cop, p * sizeof(int));
+	return res;
+}
+
+int solve_b(int beta_pruning, bool debug = false) {
+ 	if (p == 1) {
+ 		int res = check();
+ 	 	return res;
+ 	}
+
+	int res = -100;
+	for (int i = 0; i < p && ((res <= 0 && res < beta_pruning) || debug); i++) {
+		int x = frf[i];
 	 	assert(state[x] == 0);
 
 	 	state[x] = m;
@@ -110,7 +152,11 @@ int main() {
 	double start = clock();
 	init();
 	print();
-	cout << solve(100, true) << endl;
+	unsigned long milliseconds_since_epoch =
+    std::chrono::system_clock::now().time_since_epoch() / 
+    std::chrono::milliseconds(1);
+	srand(milliseconds_since_epoch);
+	cout << solve_b(100, true) << endl;
 	cout << (clock() - start) / CLOCKS_PER_SEC << endl;
 
  	return 0;
