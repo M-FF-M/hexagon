@@ -50,6 +50,13 @@ const DEFAULT_BOARDS = [
     moves: 4,
   },
   {
+    name: 'Line 15',
+    board: [
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ],
+    moves: 7,
+  },
+  {
     name: 'THE Wheel',
     board: [
       [X, 0, 0, 0, X],
